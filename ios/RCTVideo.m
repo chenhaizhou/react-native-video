@@ -558,7 +558,7 @@ static NSString *const timedMetadata = @"timedMetadata";
 
 - (void)setSeek:(float)seekTime
 {
-  int timeScale = 1000;
+  int timeScale = 10000;
 
   AVPlayerItem *item = _player.currentItem;
   if (item && item.status == AVPlayerItemStatusReadyToPlay) {
