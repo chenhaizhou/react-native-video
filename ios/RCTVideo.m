@@ -33,6 +33,8 @@ static NSString *const timedMetadata = @"timedMetadata";
   Float64 _progressUpdateInterval;
   BOOL _controls;
   id _timeObserver;
+    
+  NSDictionary *_source;
 
   /* Keep track of any modifiers, need to be applied after each play */
   float _volume;
@@ -278,42 +280,47 @@ static NSString *const timedMetadata = @"timedMetadata";
 
 - (void)setSrc:(NSDictionary *)source
 {
-  [self removePlayerTimeObserver];
-  [self removePlayerItemObservers];
-  _playerItem = [self playerItemForSource:source];
-  [self addPlayerItemObservers];
+  _source = source;
+}
 
-  [_player pause];
-  [self removePlayerLayer];
-  [_playerViewController.view removeFromSuperview];
-  _playerViewController = nil;
-
-  if (_playbackRateObserverRegistered) {
-    [_player removeObserver:self forKeyPath:playbackRate context:nil];
-    _playbackRateObserverRegistered = NO;
-  }
-
-  _player = [AVPlayer playerWithPlayerItem:_playerItem];
-  _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
-
-  [_player addObserver:self forKeyPath:playbackRate options:0 context:nil];
-  _playbackRateObserverRegistered = YES;
-
-  [self addPlayerTimeObserver];
-
-  dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-    //Perform on next run loop, otherwise onVideoLoadStart is nil
-    if(self.onVideoLoadStart) {
-      id uri = [source objectForKey:@"uri"];
-      id type = [source objectForKey:@"type"];
-      self.onVideoLoadStart(@{@"src": @{
-                                        @"uri": uri ? uri : [NSNull null],
-                                        @"type": type ? type : [NSNull null],
-                                        @"isNetwork": [NSNumber numberWithBool:(bool)[source objectForKey:@"isNetwork"]]},
-                                        @"target": self.reactTag
-                                        });
+- (void)setSource {
+    NSDictionary *source = _source;
+    [self removePlayerTimeObserver];
+    [self removePlayerItemObservers];
+    _playerItem = [self playerItemForSource:source];
+    [self addPlayerItemObservers];
+    
+    [_player pause];
+    [self removePlayerLayer];
+    [_playerViewController.view removeFromSuperview];
+    _playerViewController = nil;
+    
+    if (_playbackRateObserverRegistered) {
+        [_player removeObserver:self forKeyPath:playbackRate context:nil];
+        _playbackRateObserverRegistered = NO;
     }
-  });
+    
+    _player = [AVPlayer playerWithPlayerItem:_playerItem];
+    _player.actionAtItemEnd = AVPlayerActionAtItemEndNone;
+    
+    [_player addObserver:self forKeyPath:playbackRate options:0 context:nil];
+    _playbackRateObserverRegistered = YES;
+    
+    [self addPlayerTimeObserver];
+    
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        //Perform on next run loop, otherwise onVideoLoadStart is nil
+        if(self.onVideoLoadStart) {
+            id uri = [source objectForKey:@"uri"];
+            id type = [source objectForKey:@"type"];
+            self.onVideoLoadStart(@{@"src": @{
+                                            @"uri": uri ? uri : [NSNull null],
+                                            @"type": type ? type : [NSNull null],
+                                            @"isNetwork": [NSNumber numberWithBool:(bool)[source objectForKey:@"isNetwork"]]},
+                                    @"target": self.reactTag
+                                    });
+        }
+    });
 }
 
 - (AVPlayerItem*)playerItemForSource:(NSDictionary *)source
@@ -853,6 +860,14 @@ static NSString *const timedMetadata = @"timedMetadata";
   [[NSNotificationCenter defaultCenter] removeObserver:self];
 
   [super removeFromSuperview];
+}
+
+- (void)didSetProps:(NSArray<NSString *> *)changedProps
+{
+    [super didSetProps:changedProps];
+    if ([changedProps containsObject:@"src"]){
+        [self setSource];
+    }
 }
 
 @end
