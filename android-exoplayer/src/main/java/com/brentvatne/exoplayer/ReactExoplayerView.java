@@ -1058,17 +1058,21 @@ class ReactExoplayerView extends FrameLayout implements
 
     public void seekTo(long positionMs) {
 
-        int  playingIndex = PlayerInstanceHolder.INSTANCE.mapToCurrentWindowIndex(srcUri);
-        if (player != null && (!extension.isEmpty() || playingIndex == C.INDEX_UNSET || playingIndex == player.getCurrentWindowIndex() )) {
-            seekTime = positionMs;
-            if (player.getPlaybackState() == Player.STATE_IDLE && extension.equals(PLAYER_TYPE_PAGE_READING)) {
-                player.setMediaSource(buildMediaSource(srcUri, ""));
-                player.prepare();
-                player.setPlayWhenReady(true);
+        if (player != null) {
+            int  playingIndex = PlayerInstanceHolder.INSTANCE.mapToCurrentWindowIndex(srcUri);
+            if (!extension.isEmpty() || playingIndex == C.INDEX_UNSET || playingIndex == player.getCurrentWindowIndex() ) {
+                seekTime = positionMs;
+                if (player.getPlaybackState() == Player.STATE_IDLE && extension.equals(PLAYER_TYPE_PAGE_READING)) {
+                    player.setMediaSource(buildMediaSource(srcUri, ""));
+                    player.prepare();
+                    player.setPlayWhenReady(true);
+                }
+                player.seekTo(positionMs);
+                Log.i(TAG, "execute seek:" + positionMs);
+                if (PLAYER_TYPE_SPEAK_EASY.equals(extension)) setPlayWhenReady(true);
+            } else {
+                resumePosition = positionMs;
             }
-            player.seekTo(positionMs);
-            Log.i(TAG, "execute seek:" + positionMs);
-            if (PLAYER_TYPE_SPEAK_EASY.equals(extension)) setPlayWhenReady(true);
         } else {
             resumePosition = positionMs;
         }
